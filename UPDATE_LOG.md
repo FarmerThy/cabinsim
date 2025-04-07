@@ -1,0 +1,48 @@
+# 场景 #
+一系列共同协作分布在不同地域的数据中心（通过某个网络拓扑相连，具有某种调度架构，即一个以树表示的分层调度关系，且这些数据中心的资源都包含算力、算法、数据三种要素），一系列分布在不同位置的用户（表现为用户提交的需求到达对应数据中心的传输时延不同）向各自对应的数据中心提出需求（该需求包括用户希望创建的虚拟机列表、以及需要在这些虚拟机上完成的Cloudlet列表，用户可以指定Cloudlet与虚拟机的对应关系，若不指定，则模拟器将使用启发式的方法进行对应），数据中心在接收到这些需求后，将根据其调度架构定义的策略，将该需求发送到相应的数据中心去（若数据中心无法满足这些需求，则回复用户资源不足），在相应的数据中心接收到请求后（包含一个虚拟机列表和一个Cloudlet列表，注意这里的两个列表与用户之前提交的列表不一定相同，因为数据中心协同工作，可以将用户需求分给不同的数据中心处理），数据中心根据已有的算力（Host、Pe）、算法（Algorithm）、数据（Data）资源创建对应的虚拟机群，并在之后在相应的虚拟机上运行用户提交的任务，根据任务需求的算力、算法，以及其所运行的虚拟环境（Vm）所提供的算力，得到一个特定的UtilizationModel，来反应三要素的一个耦合程度，（并得到一个任务评估结果，来反应最后得到的模型的准确率之类的参数？）最终输出每个Cloudlet的完成情况，用于评估调度策略，这也是这个模拟器的创新点。
+
+# 改动记录 #
+添加类Algorithm、Data表征算法、数据资源，添加相应的构造函数及set、get方法，并重写equals方法与hashCode方法用于判断值相等
+
+添加类ZDatacenterCharacteristic，其父类为DatacenterCharacteristic，包含算法列表algorithmList、数据列表dataList，表示对应数据中心所包含的算法、数据资源
+
+添加类ZDatacenter，暂无作用，计划在编写调度架构SchedulingArchitecture时增加相应逻辑
+
+(modified cloudsim source code) 在Cloudlet类中添加所需算法列表requiredAlgorithm、所需数据列表requiredData，以及其相应的get、set方法与构造函数
+
+添加ZUtilizaionModel，不同三要素将导致任务执行效率不同，反映在模拟器中即对CPU的利用率不同、最后任务的完成评分不同，该方法提供了针对上述逻辑的接口
+
+编写类ZExample，展示CabinSim的一个简单示例，数据中心包含Transformer与GAN两种算法，数据集包含MNIST与CIFAR-10两种数据集，对于即将在申请的虚拟环境中运行的任务而言（使用算力确定），其使用不同的算法与数据具有不同的效用，通过utilizationMap与ZUtilizationModel对其进行描述，并在模拟时考虑
+
+将ZExample中Vm的CloudletScheduler从CloudletSchedulerTimeShared更改为CloudletSchedulerDynamicWorkload，原因：CloudletSchedulerTimeShared并未对UtilizationModel的相关方法进行调用，仅CloudletSchedulerDynamicWorkload可以支持对CPU利用率的改动
+
+添加类AccessControlPolicy
+
+添加类SchedulingArchitecture（编写中）
+
+# 思考 #
+Cloudlet中的算法与数据项应当为单个，若单个Cloudlet具有多个算法与数据，则不利于三要素耦合的判断
+
+如何表征算法、数据的隐私性？通过设置访问等级（public,private）与可访问名单。当资源的访问等级为"PUBLIC"时，该资源为公开状态，所有用户均可访问；当资源的访问等级为"PRIVATE"时，仅被包含在可访问名单中的用户可访问该资源。
+
+# 问题 #
+在Cloudlet还是Vm中添加算法与数据项（仅在Cloudlet中添加，一方面，这样做可以将Vm单纯视为一个计算单元，结构更加简洁清晰，另一方面，这也默许了用户可以选择自己添加算法数据，亦或是使用Datacenter提供的算法数据，更加灵活，并且，若仅在Vm中添加算法与数据项，会导致在执行任务时所用的三要素资源不明晰。）
+
+是否应该添加ZVm，以支持用户请求的虚拟机包含算法与数据，若添加，则涉及到的代码改动可能较大，若不添加，则需要更改CloudSim原始代码，尽管这并不更改CloudSim的原本逻辑， 不影响CloudSim的拓展性（不添加，若不更改CloudSim的原本逻辑，从简即可，原则即为：不更改CloudSim的原始代码逻辑，仅作添加）
+
+是否应该在Vm和Cloudlet中添加一个UserId，指明该Vm与Cloudlet属于哪一个用户？（研究完RealisticCloudletArrivalExample后再做决定）
+
+是否需要解耦合Cloudlet与UtilizationModel，目前的Cloudlet在最初提交时就定死了UtilizationModel，而三要素耦合的方式将要求Cloudlet在某个Vm上执行时（最早也是在Cloudlet与某个Vm绑定时）才确定UtilizationModel
+
+# 计划 #
+需要添加针对只需求数据或算法的请求的处理逻辑，这类请求不在数据中心内部创建虚拟机，而只单纯请求算法与数据
+
+需要添加调度架构SchedulingArchitecture
+
+需要区分对Pe进行CPU、GPU的区分（工程量可能较大，暂定。Pe在CloudSim中即代表CPU，添加GPU即可）
+
+需要在Algorithm类与Data类中丰富表征，可以从隐私相关表征开始
+
+添加逻辑判断算法与数据是用户自带的还是调用的数据中心的
+
+增强ZExample的真实程度，研究参考RealisticCloudletArrivalExample方式
