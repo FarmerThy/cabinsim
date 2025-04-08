@@ -1,9 +1,36 @@
 # CabinSim: A Simulator For Modeling The Scheduling Strategies In Computing Network #
 
-算力网络是一种将各个超算中心、数据中心等资源提供方进行互联的网络基础设施，其中的资源调度需要考虑算力、算法、数据三要素资源及其协同关系，以获取更高的资源利用率与SLA水平。Cabin则是一种包含算力、算法、数据三要素资源的虚拟环境，在算力网络中，资源提供方通过将已有的各种资源构建为一个个虚拟的Cabin来处理用户提交的不同任务。
+CabinSim is a simulator designed for modeling and evaluating resource scheduling and orchestration strategies in computing power networks. It is built upon [CloudSim 7G](https://github.com/Cloudslab/cloudsim), leveraging inheritance and class extension to preserve the core logic and extensibility of CloudSim 7G with altering its original codebase sightly.
 
-CabinSim是一个用于模拟算力网络中相关资源调度策略的模拟器。CabinSim基于CloudSim 7G编写，在保留了CloudSim 7G原有功能及其扩展性的同时，添加了对数据、算法作为独立资源的表征，以及反应不同要素组合在面对同一任务时不同执行效率的接口。 
+By maintaining compatibility with CloudSim 7G, CabinSim allows for seamless integration of existing or future extensions developed for CloudSim 7G, providing a robust and adaptable simulation platform.
 
-在算力网络中，具有着多种多样的算力、算法、数据资源，而不同的算力、算法、数据之间的耦合性不同，处理任务的效率也不同。现有资源调度相关的研究工作往往只考虑算力资源的调度问题，一些工作额外考虑了用户任务所需数据的放置与路由问题。但他们均未将算力、算法、数据都作为独立的资源进行考虑。事实上，不同的算力、算法、数据资源组合间要素的耦合性不同，与任务的适配程度不同，在处理同一个任务时也将展现出不同的任务执行效率与SLA水平。例如，在同一个计算资源上，使用MNIST数据集训练识别手写数字的任务，使用Transformer框架与使用GAN将导致不同的执行效率。这也导致现有的模拟器并未对相关的特征进行模拟。而在CabinSim中，我们提供了相应接口，使得对于算力网络场景下的同一个任务，选择不同的算力、算法、数据组合来构建方舱将导致不同的任务完成速度与资源利用率，用户也可以对该速度进行指定。
+# Main Features #
+* Support for the representation of data and algorithms as independent resources
+* Support for access control policy to the resources within data centers
+* Support for describing the task efficiency based on the coordination of computing power, data and algorithm
+* Support for customizable scheduling architectures
+* Support for data exchange via JSON such as network topology input
 
-目前该项目仍在编写中 This project is still under building.
+# Scenario #
+
+**The Computing Power Network** is an emerging network infrastructure that interconnects resource providers such as supercomputing centers and data centers. In such a system, efficient resource scheduling must take into account not only computing power but also algorithms and data—the three core elements that collectively determine resource efficiency and service-level agreement (SLA) fulfillment.
+
+To represent these resources cohesively, we introduce the concept of **Cabin**: a virtualized environment that encapsulates specific combinations of computing power, algorithms, and data. In a computing power network, resource providers construct diverse Cabins by assembling available resources, which are then allocated to process user-submitted tasks.
+
+In real-world scenarios, the computing power, algorithm, and data resources are diverse and exhibit various levels of coupling. The compatibility between these elements significantly affects task execution performance. However, most existing research in resource scheduling focuses solely on computing resources, with a few studies considering data placement and routing. These works rarely treat computing power, algorithms, and data as independent yet interrelated resources.
+
+In reality, different combinations of these three elements exhibit distinct coupling characteristics and degrees of task suitability, leading to varying levels of execution efficiency and SLA compliance for the same task. For example, a handwritten digit recognition task trained on the MNIST dataset may yield different execution times when using a Transformer model versus a GAN model, even if executed on the same computing resource.
+
+# File Structure #
+All the source code are contained in directory `\modules`. We put the code from CloudSim 7G in `\modules\cloudsim` and `\modules\cloudsim-examples`, which are only slightly different from the source code of CloudSim 7G to ensure the scalability. 
+
+We implemented the extra functionality of cabinsim in directory `\modules\cabinsim` and give some simple examples in `\modules\cabinsim-examples` to demonstrate how to use it.
+
+Also, the code of cabinsim and cloudsim is mutually dependent. Therefore, to avoid the circular dependency in maven construction, we add a directory `\cabinsim` in the CloudSim original directory, which contains all the source code of cabinsim.
+
+# Modification in CloudSim #
+Despite that we want to maximize the elasticity and on-demand scalability capabilities of CloudSim 7G, to enable the functionality of cabinsim, we have to modify the source code in CloudSim 7G. We list the modification here.
+* In class `Cloudlet`, we add two variables `requiredAlgorithm` and `requiredData` to denote the algorithm and data that this cloud needs respectively. We also add the method to access and modify the value of these two variables,  along with a new constructor function supporting data and algorithm resource.
+
+# Notice #
+This project is still under building. However, we have already finished the simulation of `data` and `algorithm` along with their `access control policy`. Users can now use cabinsim to include computing power, data and algorithm resources in their scheduling strategies. A simple example is given in `ZExample` in directory `\modules\cabinsim-examples`
